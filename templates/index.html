@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAP LMS Bulk Question Automator</title>
+<style>
+:root{--bg:#0b1020;--card:#121a2f;--line:#273451;--text:#eef3ff;--muted:#9ca9c7;--accent:#6d8cff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(135deg,#0b1020,#151d35);color:var(--text);min-height:100vh}
+.wrap{max-width:1050px;margin:auto;padding:48px 22px}.hero{margin-bottom:30px}.badge{display:inline-block;padding:7px 12px;border:1px solid var(--line);border-radius:999px;color:#b9c7ff;font-size:12px}
+h1{font-size:42px;margin:16px 0 8px}.hero p{color:var(--muted);font-size:17px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:rgba(18,26,47,.92);border:1px solid var(--line);border-radius:18px;padding:22px}
+label{display:block;font-weight:650;margin-bottom:8px}input,select{width:100%;padding:13px 14px;background:#0d1528;color:var(--text);border:1px solid var(--line);border-radius:10px}
+.file{border:1px dashed #42527a;padding:18px;border-radius:12px;background:#0d1528}.help{font-size:12px;color:var(--muted);margin-top:7px}
+.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:12px;margin-top:20px}button{border:0;border-radius:11px;padding:14px 22px;font-weight:750;cursor:pointer}.primary{background:var(--accent);color:white}
+.status{margin-top:16px;padding:13px;border-radius:10px;display:none}.ok{background:#143421;color:#b8f2c9}.err{background:#3b1820;color:#ffc1ca}
+.example{background:#0a1121;border:1px solid var(--line);border-radius:12px;padding:16px;font-family:monospace;white-space:pre-wrap;color:#dce5ff;font-size:13px}
+@media(max-width:750px){.grid{grid-template-columns:1fr}.full{grid-column:auto}h1{font-size:32px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero"><span class="badge">ONLINE • SAP LMS</span><h1>SAP LMS Bulk Question Automator</h1>
+<p>Upload your questions and SAP template. Generate a SAP-ready Excel bulk-upload file automatically.</p></div>
+<form id="form" enctype="multipart/form-data">
+<div class="grid">
+<div class="card">
+<label>Questions file</label><div class="file"><input name="source" type="file" accept=".docx,.txt,.aiken" required></div>
+<div class="help">AIKEN / TXT or Word DOCX. Use ANSWER: B (or A,C for multiple answers).</div>
+</div>
+<div class="card">
+<label>SAP LMS template</label><div class="file"><input name="template" type="file" accept=".xlsx" required></div>
+<div class="help">Upload the SAP bulk question Excel template.</div>
+</div>
+<div class="card">
+<label>Course code</label><input name="course" placeholder="26Q3_vid_c_SOWA2_JB" required>
+</div>
+<div class="card">
+<label>Assessment type</label><select name="stage"><option>Pre Assessment</option><option selected>Knowledge Check</option><option>Post Assessment</option></select>
+</div>
+<div class="card">
+<label>Locale ID</label><input name="locale" value="en_US">
+</div>
+<div class="card">
+<label>Domain ID</label><input name="domain" value="PUBLIC">
+</div>
+<div class="card">
+<label>Default question type</label><select name="qtype">
+<option>MULTI_CHOICE_SINGLE_ANSWER</option><option>MULTI_CHOICE_MULTIPLE_ANSWER</option><option>TRUE_FALSE</option><option>ORDERING</option><option>FILL_IN_THE_BLANK</option>
+</select>
+</div>
+<div class="card">
+<label>Question ID example</label><div class="example">26Q3_vid_c_SOWA2_JB_KC_001
+26Q3_vid_c_SOWA2_JB_KC_002
+26Q3_vid_c_SOWA2_JB_KC_003</div>
+</div>
+<div class="card full">
+<label>AIKEN example</label>
+<div class="example">Which formula represents Einstein's mass-energy equivalence?
+
+A. F = ma
+B. E = mc^2
+C. PV = nRT
+D. V = IR
+
+ANSWER: B</div>
+<div class="actions"><button class="primary" id="btn" type="submit">Generate SAP Bulk Excel</button></div>
+<div class="status" id="status"></div>
+</div>
+</div>
+</form>
+</div>
+<script>
+const form=document.getElementById('form'), btn=document.getElementById('btn'), status=document.getElementById('status');
+form.addEventListener('submit',async e=>{
+ e.preventDefault(); btn.disabled=true; btn.textContent='Generating…'; status.style.display='none';
+ try{
+  const r=await fetch('/generate',{method:'POST',body:new FormData(form)});
+  const ct=r.headers.get('content-type')||'';
+  if(!r.ok){const d=ct.includes('json')?await r.json():{error:'Generation failed'}; throw new Error(d.error);}
+  const blob=await r.blob(); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=(r.headers.get('content-disposition')||'SAP_LMS_Bulk.xlsx').split('filename=')[1]?.replaceAll('"','')||'SAP_LMS_Bulk.xlsx';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  status.className='status ok'; status.textContent='✓ SAP bulk Excel generated successfully.'; status.style.display='block';
+ }catch(err){status.className='status err';status.textContent='⚠ '+err.message;status.style.display='block'}
+ finally{btn.disabled=false;btn.textContent='Generate SAP Bulk Excel'}
+});
+</script>
+</body></html>
